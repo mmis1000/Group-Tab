@@ -1,0 +1,43 @@
+{
+
+  "manifest_version": 2,
+  "name": "Group Tab",
+  "version": "1.0",
+
+  "description": "Show your pages in group with keyword.",
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.mozilla.org/*"],
+      "js": ["borderify.js"]
+    }
+  ],
+  
+  "applications": {
+    "gecko": {
+      "id": "firefox.addon.group.tab@mmis1000.me"
+    }
+  },
+  
+  "icons": {
+    "48": "icons/group_tab_48.png",
+    "96": "icons/group_tab_96.png"
+  },
+  
+  "browser_action": {
+    "default_icon": "icons/action.png",
+    "default_title": "Show tabs",
+    "default_popup": "popup/menu.html"
+  },
+  
+  "permissions": [
+    "tabs",
+    "storage",
+    "unlimitedStorage",
+    "notifications"
+  ],
+  
+  "background": {
+    "page": "tabs/jieba-service.html"
+  }
+}
