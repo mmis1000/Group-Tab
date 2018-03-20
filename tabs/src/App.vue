@@ -5,78 +5,104 @@
             <i class="fas fa-book fa-2x"></i>
             Current Tabs
         </div>
-        <div class="bottom">
-            <div class="item">
-                <i class="fas fa-save fa-lg"></i>
-                Save
+        
+        <transition name="slide-v">
+            <div class="bottom" v-if="showSave">
+                <div class="item">
+                    <i class="fas fa-save fa-lg"></i>
+                    Save
+                </div>
+                <div class="item">
+                    <i class="fas fa-save fa-lg"></i>
+                    Save and close
+                </div>
+                <div class="item">
+                    <i class="fas fa-times-circle fa-lg"></i>
+                    Close
+                </div>
+                <div class="item">
+                    <i class="fas fa-times fa-lg" style="color: red;"></i>
+                    Cancel
+                </div>
             </div>
-            <div class="item">
-                <i class="fas fa-save fa-lg"></i>
-                Save and close
-            </div>
-            <div class="item">
-                <i class="fas fa-times-circle fa-lg"></i>
-                Close
-            </div>
-            <div class="item">
-                <i class="fas fa-times fa-lg" style="color: red;"></i>
-                Cancel
-            </div>
-        </div>
+        </transition>
     </div>
     
     
     <div class="main">
-        <h1 class='browser-style'>Your current tabs {{ tabs.length }}</h1>
+        <h1 class='browser-style'>
+            Your current tabs {{ tabs.length }}
+             <span v-if="selectTabCount > 0">({{selectTabCount}} selected)</span>
+        </h1>
         <!--<pre id="test"></pre>-->
-        <div v-for="group in groups" class='browser-style'>
-            <div v-bind:class="['item', 'head', 'browser-style', group.halfChecked? 'partial-selected': '', group.show? 'expanded': '' ]">
-                <div class='div expand-icon' @click="group.show = !group.show">
-                    <i class="fas fa-angle-down fa-2x"></i>
+        <div v-for="group in groups" :key="group.keyword" class='browser-style'>
+            <div v-bind:class="[
+                'item', 
+                'head', 
+                'browser-style', 
+                group.halfChecked? 'partial-selected': '', 
+                group.show? 'expanded': '' , 
+                group.overlay? 'overlayed': '' , 
+                group.selected? 'selected': '' 
+            ]">
+                <div v-once class='div expand-icon' @click="group.show = !group.show">
+                    <i class="fas fa-angle-right fa-2x"></i>
                 </div>
                 
                 <input 
                     type="checkbox" 
                     v-bind:id="`input-${group.id}`" 
                     v-model:checked="group.checked" 
-                    @change="setGroupChecked(group)"
+                    @change="setGroupChecked.call(this, group)"
                 />
-                <label v-bind:for="`input-${group.id}`">{{ group.keyword }} ({{ group.pages.length }})</label>
+                <label v-once v-bind:for="`input-${group.id}`">{{ group.keyword }} ({{ group.pages.length }})</label>
+                
+                <div class='select-overlay'></div>
             </div>
             
-            <transition name="fade">
-                <div  v-if="group.show" class='browser-style'>
-                    <subitem v-for="page in group.pages" v-bind:page="page" v-bind:group="group"/>
-                <!--
-                    <div v-for="page in group.pages" class='item browser-style sub'>
-                        <input type="checkbox" v-bind:id="`input-${group.id}-${page.id}`" v-model="page.checked"/>
-                        <label v-bind:for="`input-${group.id}-${page.id}`">{{ page.title }}</label>
-                    </div>
-                    -->
+            <transition name="slide-v">
+                <div v-if="group.show" class='browser-style' style="overflow: hidden">
+                    <subitem 
+                        v-for="page in group.pages" 
+                        v-bind:page="page" 
+                        v-bind:group="group"
+                        v-bind:onchange="onPageChange.bind(this)"
+                    />
                 </div>
             </transition>
         </div>
     </div>
     
-
-    
     <div class="edit-panel">
+        <transition name="slide-h">
+            <div v-show="!multiSelecting" class="item">
+                <i class="fas fa-hand-pointer fa-lg"></i>
+                Select all
+            </div>
+        </transition>
+        <transition name="slide-h">
+            <div v-show="!multiSelecting" class="item">
+                <i class="far fa-hand-pointer fa-lg"></i>
+                Unselect all
+            </div>
+        </transition>
+        <transition name="slide-h">
+            <div v-show="!multiSelecting" @click="multiSelecting = !multiSelecting" class="item">
+                <i class="fas fa-boxes fa-lg"></i>
+                Multi select
+            </div>
+        </transition>
+        <transition name="slide-h">
+            <div v-show="multiSelecting"  @click="multiSelecting = !multiSelecting" class="item">
+                <i class="fas fa-boxes fa-lg"></i>
+                Stop multi select
+            </div>
+        </transition>
         <div class="search-box browser-style">
             <input type="text" id="search" placeholder="search for tabs">
             <label for="search"></label>
         </div>
-        <div class="item">
-            <i class="fas fa-hand-pointer fa-lg"></i>
-            Select all
-        </div>
-        <div class="item">
-            <i class="far fa-hand-pointer fa-lg"></i>
-            Unselect all
-        </div>
-        <div class="item">
-            <i class="fas fa-boxes fa-lg"></i>
-            Multi select
-        </div>
+        
     </div>
   </div>
 </template>
@@ -94,7 +120,10 @@ export default {
       pages: [],
       id: 0,
       tabs: [],
-      groups: []
+      groups: [],
+      multiSelecting: false,
+      showSave: false,
+      selectTabCount: 0
     }
   },
   methods: {
@@ -150,6 +179,7 @@ export default {
                         keyword: w,
                         checked: false,
                         halfChecked: false,
+                        checkedCount: 0,
                         show: false,
                         pages: pages.filter((page)=>page.keywords.indexOf(w) >= 0).map((o)=>{
                             o.checked = false;
@@ -173,9 +203,28 @@ export default {
         });
     },
     setGroupChecked(group) {
+        group.halfChecked = false;
+        group.checkedCount = group.checked ? group.pages.length : 0;
         group.pages.forEach((p)=>p.checked = group.checked)
+        
+        this.showSave = this.groups.filter((i)=>i.checkedCount > 0).length > 0;
+        
+        this.updateCount()
+    },
+    onPageChange(page, group) {
+        if (group.checkedCount > 0) {
+            this.showSave = true;
+        } else {
+            this.showSave = this.groups.filter((i)=>i.checkedCount > 0).length > 0;
+        }
+        
+        this.updateCount()
+    },
+    updateCount() {
+        this.selectTabCount = this.groups.reduce((prev, curr)=>prev + curr.checkedCount, 0)
     }
   },
+
   mounted() {
     // `this` points to the vm instance
     setTimeout(()=>{
@@ -207,7 +256,10 @@ export default {
     font-size: 1.25em;
     vertical-align: middle;
     border-radius: 4px;
+    
+    cursor: pointer;
 }
+
 .sidebar .item:hover {
     background: #ccc;
 }
@@ -242,6 +294,10 @@ export default {
     margin-top: 0px;
 }
 
+.main .item:hover {
+    background: #ccc;
+}
+
 .main .item {
     min-height: 40px;
     /*border-bottom: 1px solid #ddd;*/
@@ -250,6 +306,13 @@ export default {
     vertical-align: middle;
     margin-bottom: 0px;
     position: relative
+}
+
+.main .item label {
+    display: inline-block;
+    height: 100%;
+    min-width: calc(100% - 40px);
+    cursor: pointer;
 }
 
 .main .item.sub {
@@ -261,7 +324,7 @@ export default {
 }
 
 .main .item.expanded .expand-icon {
-    transform: rotate(180deg)
+    transform: rotate(90deg)
 }
 
 .main .expand-icon {
@@ -287,7 +350,8 @@ export default {
     position: fixed;
     right: 0px;
     top: 0px;
-    left: 268px;
+    /*left: 268px;*/
+    left: 0px;
     padding: 16px;
     text-align: right;
     
@@ -305,6 +369,10 @@ export default {
     padding: 0.25em 1em;
     border-radius: 4px;
     border: 1px solid #ccc;
+    
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .edit-panel .item:hover {
@@ -339,13 +407,24 @@ export default {
     width: 220px;
 }
 
-.fade-enter-active, .fade-leave-active {
-  transition: opacity .5s;
+.slide-v-enter-active, .slide-v-leave-active {
+  max-height: 1000px;
+  transition: max-height 0.5s ease-in;
 }
 
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+.slide-v-enter, .slide-v-leave-to /* .slide-h-leave-active below version 2.1.8 */ {
+  /*opacity: 0;*/
+  max-height: 0;
+}
+
+.slide-h-enter-active, .slide-h-leave-active {
+  max-width: 300px;
+  transition: max-width 0.5s ease-in, opacity 0.5s ease-in;
+}
+
+.slide-h-enter, .slide-h-leave-to /* .slide-h-leave-active below version 2.1.8 */ {
   opacity: 0;
+  max-width: 0;
 }
-
 
 </style>

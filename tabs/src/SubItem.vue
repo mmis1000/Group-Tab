@@ -1,17 +1,19 @@
 <template>
     <div class='item browser-style sub'>
         <input type="checkbox" v-bind:id="`input-${group.id}-${page.id}`" v-model="page.checked"/>
-        <label v-bind:for="`input-${group.id}-${page.id}`">{{ page.title }}</label>
+        <label v-once v-bind:for="`input-${group.id}-${page.id}`">{{ page.title }}</label>
     </div>
 </template>
 
 <script>
 export default {
   name: 'subitem',
-  props: ['group', 'page'],
+  props: ['group', 'page', 'onchange'],
   watch: {
     'page.checked': function () {
         let checkedCount = this.group.pages.filter((p)=>p.checked).length;
+        this.group.checkedCount = checkedCount;
+        
         if (checkedCount === this.group.pages.length) {
             this.group.checked = true;
             this.group.halfChecked = false;
@@ -22,13 +24,16 @@ export default {
             this.group.checked = false;
             this.group.halfChecked = false;
         }
+        
+        if (this.onchange) {
+            this.onchange(this.page, this.group)
+        }
     }
   }
 }
 </script>
 
 <style scoped>
-
 .item {
     min-height: 40px;
     /*border-bottom: 1px solid #ddd;*/
@@ -41,6 +46,13 @@ export default {
 
 .item.sub {
     margin-left: 40px;
+}
+
+.item label {
+    display: inline-block;
+    min-width: 100%;
+    height: 100%;
+    cursor: pointer;
 }
 
 .item.partial-selected label::before{
