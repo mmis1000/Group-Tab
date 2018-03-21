@@ -81,7 +81,28 @@ define(function(require) {
         if (trie == null || FREQ == null || total == null || min_freq == null) {
             console.log('cache missing, rebuiding trie...')
             
-            dictionary = await requireModule("data/dictionary");
+            // dictionary = await requireModule("data/dictionary");
+            /*dictionary = await fetch("data/dictionary.", {mode:'same-origin'})
+            .then((resp) => resp.json()) // Transform the data into json*/
+            
+            var chunks = [];
+            
+            let i = 0;
+            while (true) {
+                try {
+                    chunks.push(
+                        await fetch(browser.extension.getURL(`/tabs/assets/jieba/scripts/data/dictionary.split.${i}.json`), {mode:'same-origin'})
+                        .then((resp) => resp.json())
+                    )
+                } catch (e) {
+                    console.log(e);
+                    break;
+                }
+                i++
+                
+            }
+            console.log(chunks);
+            dictionary = [].concat.apply([], chunks)
             
             var gar = gen_trie();
             trie = gar[0];

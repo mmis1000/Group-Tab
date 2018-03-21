@@ -23,7 +23,10 @@
     "default_popup": "popup/menu.html"
   },
   
+  "web_accessible_resources": ["tabs/assets/*.json"],
+  
   "permissions": [
+    "<all_urls>",
     "tabs",
     "storage",
     "unlimitedStorage",
