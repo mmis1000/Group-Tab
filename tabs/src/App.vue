@@ -1,25 +1,41 @@
 <template>
   <div>
     <div class="sidebar">
-        <div class="item">
+        <div class="item" @click="currentTab = 'current'">
             <i class="fas fa-book fa-2x"></i>
             Current Tabs
         </div>
+        <div class="item" @click="currentTab = 'saved'">
+            <i class="fas fa-save fa-2x"></i>
+            Saved Tabs
+        </div>
         
         <transition name="slide-v">
-            <div class="bottom" v-if="showSave">
-                <div class="item">
-                    <i class="fas fa-save fa-lg"></i>
-                    Save
-                </div>
-                <div class="item">
-                    <i class="fas fa-save fa-lg"></i>
-                    Save and close
-                </div>
-                <div class="item">
-                    <i class="fas fa-times-circle fa-lg"></i>
-                    Close
-                </div>
+            <div class="bottom" v-if="panel[this.currentTab].showSave">
+                <transition name="slide-v">
+                    <div class="item" @click="saveTabs" v-if="currentTab === 'current'">
+                        <i class="fas fa-save fa-lg"></i>
+                        Save
+                    </div>
+                </transition>
+                <transition name="slide-v">
+                    <div class="item" @click="saveAndCloseTabs" v-if="currentTab ==='current'">
+                        <i class="fas fa-save fa-lg"></i>
+                        Save and close
+                    </div>
+                </transition>
+                <transition name="slide-v">
+                    <div class="item" @click="closeTabs" v-if="currentTab === 'current'">
+                        <i class="fas fa-times-circle fa-lg"></i>
+                        Close
+                    </div>
+                </transition>
+                <transition name="slide-v">
+                    <div class="item" @click="deleteSaved" v-if="currentTab === 'saved'">
+                        <i class="fas fa-times-circle fa-lg"></i>
+                        Delete
+                    </div>
+                </transition>
                 <div class="item">
                     <i class="fas fa-times fa-lg" style="color: red;"></i>
                     Cancel
@@ -31,11 +47,20 @@
     
     <div class="main">
         <h1 class='browser-style'>
-            Your current tabs {{ tabs.length }}
+            <transition name="slide-h">
+                 <span v-if="currentTab === 'current'" style="display:inline-block; overflow: hidden; white-space: nowrap;">
+                    Your current tabs {{ tabs.length }}
+                 </span>
+            </transition>
+            <transition name="slide-h">
+                 <span v-if="currentTab === 'saved'" style="display:inline-block; overflow: hidden; white-space: nowrap;">
+                    Your saved tabs
+                 </span>
+            </transition>
              <span v-if="selectTabCount > 0">({{selectTabCount}} selected)</span>
         </h1>
         <!--<pre id="test"></pre>-->
-        <div v-for="group in groups" :key="group.keyword" class='browser-style'>
+        <div v-for="group in panel[this.currentTab].groups" :key="group.id + '.' + group.keyword" class='browser-style'>
             <div v-bind:class="[
                 'item', 
                 'head', 
@@ -55,7 +80,7 @@
                     v-model:checked="group.checked" 
                     @change="setGroupChecked.call(this, group)"
                 />
-                <label v-once v-bind:for="`input-${group.id}`">{{ group.keyword }} ({{ group.pages.length }})</label>
+                <label v-bind:for="`input-${group.id}`">{{ group.keyword }} ({{ group.pages.length }})</label>
                 
                 <div class='select-overlay'></div>
             </div>
@@ -67,6 +92,7 @@
                         v-bind:page="page" 
                         v-bind:group="group"
                         v-bind:onchange="onPageChange.bind(this)"
+                        v-bind:onaction="onPageAction.bind(this)"
                     />
                 </div>
             </transition>
@@ -75,17 +101,18 @@
     
     <div class="edit-panel">
         <transition name="slide-h">
-            <div v-show="!multiSelecting" class="item">
+            <div v-show="!multiSelecting" class="item" @click="selectAll">
                 <i class="fas fa-hand-pointer fa-lg"></i>
                 Select all
             </div>
         </transition>
         <transition name="slide-h">
-            <div v-show="!multiSelecting" class="item">
+            <div v-show="!multiSelecting" class="item" @click="cancel">
                 <i class="far fa-hand-pointer fa-lg"></i>
                 Unselect all
             </div>
         </transition>
+        <!--
         <transition name="slide-h">
             <div v-show="!multiSelecting" @click="multiSelecting = !multiSelecting" class="item">
                 <i class="fas fa-boxes fa-lg"></i>
@@ -98,10 +125,13 @@
                 Stop multi select
             </div>
         </transition>
+        -->
+        <!--
         <div class="search-box browser-style">
             <input type="text" id="search" placeholder="search for tabs">
             <label for="search"></label>
         </div>
+        -->
         
     </div>
   </div>
@@ -116,27 +146,43 @@ export default {
   data() {
     return {
       keywordCache: new LRUCache(-1, false, new LRUCache.LocalStorageCacheStorage()),
-      querying: browser.tabs.query({}),
       pages: [],
       id: 0,
       tabs: [],
       groups: [],
       multiSelecting: false,
       showSave: false,
-      selectTabCount: 0
+      selectTabCount: 0,
+      currentTab: 'current',
+      panel: {
+        'current': {
+          groups: [],
+          selectTabCount: 0,
+          showSave: false
+        },
+        'saved': {
+          groups: [],
+          selectTabCount: 0,
+          showSave: false
+        }
+      }
     }
   },
   methods: {
     update() {
         let vm = this;
+        let data = this.panel.current;
+        
+        
         vm.pages = [];
-        vm.querying.then((tabs)=>{        
+        browser.tabs.query({}).then((tabs)=>{        
             tabs.forEach((t)=>{
                 if (t.title) {
                     if (vm.keywordCache.getItem(t.title.toLowerCase())) {
                         vm.pages.push(Promise.resolve({
                             keywords: vm.keywordCache.getItem(t.title.toLowerCase()),
                             title: t.title,
+                            url: t.url,
                             tab: t
                         }))
                     } else {
@@ -153,6 +199,7 @@ export default {
                             return {
                                 keywords: res,
                                 title: t.title,
+                                url: t.url,
                                 tab: t
                             };
                         }));
@@ -197,38 +244,314 @@ export default {
                 
                 
                 vm.tabs= tabs;
-                vm.groups= sorted;
-                
+                data.groups= sorted;
+                data.showSave = false;
+                data.selectTabCount = 0;
             })
         });
     },
-    setGroupChecked(group) {
-        group.halfChecked = false;
-        group.checkedCount = group.checked ? group.pages.length : 0;
-        group.pages.forEach((p)=>p.checked = group.checked)
+    setGroupChecked(group, checked=null) {
+        if (checked == null) {
+            checked = group.checked
+        }
         
-        this.showSave = this.groups.filter((i)=>i.checkedCount > 0).length > 0;
+        group.checked = checked;
+        group.halfChecked = false;
+        group.checkedCount = checked ? group.pages.length : 0;
+        group.pages.forEach((p)=>p.checked = checked)
+        
+        this.panel[this.currentTab].showSave = this.panel[this.currentTab].groups.filter((i)=>i.checkedCount > 0).length > 0;
         
         this.updateCount()
     },
     onPageChange(page, group) {
         if (group.checkedCount > 0) {
-            this.showSave = true;
+            this.panel[this.currentTab].showSave = true;
         } else {
-            this.showSave = this.groups.filter((i)=>i.checkedCount > 0).length > 0;
+            this.panel[this.currentTab].showSave = this.panel[this.currentTab].groups.filter((i)=>i.checkedCount > 0).length > 0;
         }
         
         this.updateCount()
     },
     updateCount() {
-        this.selectTabCount = this.groups.reduce((prev, curr)=>prev + curr.checkedCount, 0)
+        this.panel[this.currentTab].selectTabCount = this.panel[this.currentTab].groups.reduce((prev, curr)=>prev + curr.checkedCount, 0)
+    },
+    closeTabs() {
+        if (!confirm('really want to close and save these tabs?')) {
+            return
+        }
+        this._closeTabs()
+    },
+    _closeTabs() {
+        let flatten = (arr)=>{
+            if (arr.length === 0) {
+                return []
+            }
+            return [].concat.apply([], arr);
+        }
+        
+        var tabs = flatten(this.panel.current.groups.map((group)=>{
+            return group.pages.filter((p)=>p.checked)
+        }));
+        
+        var m = new Map();
+        
+        // dedup
+        tabs = tabs.reduce((prev, curr)=>{
+            if (!m.has(curr.tab)) {
+                m.set(curr.tab, true)
+                prev.push(curr)
+            }
+            
+            return prev;
+        }, [])
+        
+        Promise.all(tabs.map((tab)=>{
+            if (tab.tab.id !== browser.tabs.TAB_ID_NONE) {
+                return browser.tabs.remove(tab.tab.id)
+            } else {
+                return Promise.resolve(true);
+            }
+        }))
+        .then(()=>{
+            this.update();
+        })
+        .catch((err)=>{
+            console.error('error during close tabs')
+            console.error(err)
+            this.update();
+        })
+        
+    },
+    saveTabs() {
+        this._saveTabs();
+    },
+    _saveTabs(noDelect = false) {
+        let flatten = (arr)=>{
+            if (arr.length === 0) {
+                return []
+            }
+            return [].concat.apply([], arr);
+        }
+        
+        let keywordMap = new Map();
+        let keywords = [];
+     
+        var tabs = flatten(this.panel.current.groups.map((group)=>{
+            let filtered = group.pages.filter((p)=>p.checked);
+            
+            if (filtered.length > 0) {
+                if (!keywordMap.has(group.keyword)) {
+                    keywordMap.set(group.keyword, true);
+                    keywords.push(group.keyword)
+                }
+            }
+            
+            return group.pages.filter((p)=>p.checked)
+        }));
+        
+        
+        
+        var m = new Map();
+        // dedup
+        tabs = tabs.reduce((prev, curr)=>{
+            if (!m.has(curr.tab)) {
+                m.set(curr.tab, true)
+                prev.push(curr)
+            }
+            
+            return prev;
+        }, [])
+        
+        var name = prompt('what is the group name?', keywords.join(', '))
+        
+        if (!name) {
+            return;
+        }
+        
+        var group = {
+            id: this.id++,
+            keyword: name,
+            checked: false,
+            halfChecked: false,
+            checkedCount: 0,
+            show: false,
+            pages: tabs.map((tab)=>{
+                console.log(tab);
+                return {
+                    keywords: tab.keywords,
+                    title: tab.title,
+                    url: tab.url,
+                    id: this.id++,
+                    checked: false
+                }
+            })
+        }
+        
+        this.panel.saved.groups.push(group)
+        
+        if (!noDelect) {
+            this.panel.current.groups.forEach((g)=>{
+                this.setGroupChecked(g, false);
+            })
+        }
+        
+        console.log(this.panel.saved.groups)
+        
+        this.saveTabToStorage()
+    },
+    saveAndCloseTabs() {
+        if (!confirm('really want to close and save these tabs?')) {
+            return
+        }
+        this._saveTabs(true);
+        this._closeTabs();  
+    },
+    deleteSaved() {
+        if (!confirm('really want to delete these items?')) {
+            return
+        }
+    
+        let flatten = (arr)=>{
+            if (arr.length === 0) {
+                return []
+            }
+            return [].concat.apply([], arr);
+        }
+        
+        var tabs = flatten(this.panel.saved.groups.map((group)=>{
+            return group.pages.filter((p)=>p.checked)
+        }));
+        
+        console.log('tabs to remove', tabs)
+        
+        let panel = this.panel.saved;
+        
+        panel.groups.forEach((g)=>{
+            this.setGroupChecked(g, false);
+        })
+        
+        for (let i = panel.groups.length - 1; i >= 0; i--) {
+            let group = panel.groups[i];
+            for (let j = group.pages.length - 1; j >= 0; j--) {
+                let page = group.pages[j];
+                if (tabs.filter((tab)=>{
+                    // console.log(tab.id, page.id)
+                    return tab.id === page.id
+                }).length > 0) {
+                    // console.log('remove page', page)
+                    group.pages.splice(j, 1);
+                } else {
+                    // console.log('not going to remove page', page)
+                }
+            }
+            
+            if (group.pages.length === 0) {
+                panel.groups.splice(i, 1);
+            }
+        }
+        
+        this.saveTabToStorage()
+    },
+    cancel() {
+        this.panel[this.currentTab].groups.forEach((g)=>{
+            this.setGroupChecked(g, false);
+        })
+    },
+    saveTabToStorage() {
+        var mapped = this.panel.saved.groups.map((group)=>{
+            return {
+            　  keyword: group.keyword,
+                pages: group.pages.map((page)=>{
+                    return {
+                        title: page.title,
+                        url: page.url,
+                        keywords: page.keywords
+                    }
+                })
+            }
+        })
+        
+        browser.storage.local.set({
+            savedPages: mapped
+        })
+    },
+    loadTabFromStorage() {
+        
+        browser.storage.local.get("savedPages")
+        .then((data)=>{
+            var savedPages = data.savedPages;
+            if (!savedPages) return;
+            
+            var mapped = savedPages.map((group)=>{
+                return {
+                    id: this.id++,
+                    
+                    checked: false,
+                    halfChecked: false,
+                    checkedCount: 0,
+                    show: false,
+                    
+                　  keyword: group.keyword,
+                    pages: group.pages.map((page)=>{
+                        return {
+                            checked: false,
+                            title: page.title,
+                            id: this.id++,
+                            url: page.url,
+                            keywords: page.keywords
+                        }
+                    })
+                }
+            })
+            
+            this.panel.saved.groups = mapped;
+        });
+    },
+    selectAll() {
+        this.panel[this.currentTab].groups.forEach((g)=>{
+            this.setGroupChecked(g, true);
+        })
+    },
+    onPageAction(page, group) {
+        console.log(JSON.stringify(page))
+        if (this.currentTab === "current") {
+            browser.tabs.update(
+                page.tab.id,
+                {
+                    active: true
+                }
+            )
+            
+            browser.windows.update(
+                page.tab.windowId,
+                {
+                    focused: true
+                }
+            )
+            
+        } else {
+            browser.tabs.create({
+                url: page.url
+            })
+        }
     }
   },
-
+  watch: {
+    currentTab() {
+        location.hash = this.currentTab;
+    }
+  },
   mounted() {
     // `this` points to the vm instance
     setTimeout(()=>{
         this.update();
+        this.loadTabFromStorage()
+        
+        let hash = location.hash.slice(1);
+        if (hash === 'saved' || hash === 'current') {
+            this.currentTab = hash;
+        }
     })
   },
   components: {

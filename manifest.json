@@ -2,16 +2,9 @@
 
   "manifest_version": 2,
   "name": "Group Tab",
-  "version": "1.0",
+  "version": "0.0.1",
 
   "description": "Show your pages in group with keyword.",
-
-  "content_scripts": [
-    {
-      "matches": ["*://*.mozilla.org/*"],
-      "js": ["borderify.js"]
-    }
-  ],
   
   "applications": {
     "gecko": {
