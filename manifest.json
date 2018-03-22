@@ -2,7 +2,7 @@
 
   "manifest_version": 2,
   "name": "Group Tab",
-  "version": "0.0.1",
+  "version": "0.0.4b",
 
   "description": "Show your pages in group with keyword.",
   
@@ -26,7 +26,6 @@
   "web_accessible_resources": ["tabs/assets/*.json"],
   
   "permissions": [
-    "<all_urls>",
     "tabs",
     "storage",
     "unlimitedStorage",

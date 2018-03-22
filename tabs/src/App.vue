@@ -36,7 +36,7 @@
                         Delete
                     </div>
                 </transition>
-                <div class="item">
+                <div class="item" @click="cancel">
                     <i class="fas fa-times fa-lg" style="color: red;"></i>
                     Cancel
                 </div>
@@ -57,7 +57,9 @@
                     Your saved tabs
                  </span>
             </transition>
-             <span v-if="selectTabCount > 0">({{selectTabCount}} selected)</span>
+            <span v-if="panel[currentTab].selectTabCount > 0" style="display:inline-block; overflow: hidden; white-space: nowrap;">
+                ({{panel[currentTab].selectTabCount}} selected)
+            </span>
         </h1>
         <!--<pre id="test"></pre>-->
         <div v-for="group in panel[this.currentTab].groups" :key="group.id + '.' + group.keyword" class='browser-style'>
@@ -242,6 +244,31 @@ export default {
                 console.log(`groups has > 1 item: ${sorted.length}`);
                 console.log(sorted)
                 
+                var ungroupableItems = {
+                    id: vm.id++,
+                    keyword: '<Ungroupable Pages>',
+                    checked: false,
+                    halfChecked: false,
+                    checkedCount: 0,
+                    show: false,
+                    pages: pages.filter(
+                        (currentPage)=>{
+                            var exist = sorted.reduce((prev, group)=>{
+                                return prev || group.pages.reduce((prev, page)=>{
+                                    return prev || (currentPage.tab === page.tab)
+                                }, false)
+                            }, false)
+                            return !exist;
+                        }
+                    ).map((o)=>{
+                        o.checked = false;
+                        o.id = vm.id++;
+                        // force a surface  clone
+                        return Object.assign({}, o);
+                    })
+                };
+                
+                sorted.push(ungroupableItems)
                 
                 vm.tabs= tabs;
                 data.groups= sorted;

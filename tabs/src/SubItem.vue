@@ -5,6 +5,10 @@
         <div class="action" @click="subAction">
             <i class="fas fa-external-link-alt"></i>
         </div>
+        
+        <div class='select-overlay' v-if="true">
+            
+        </div>
     </div>
 </template>
 
@@ -101,6 +105,14 @@ export default {
     content: '　';
     height: 100%;
     width: 0px;
+}
+
+.item .select-overlay {
+    width: 100%;
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
 }
 
 </style>
