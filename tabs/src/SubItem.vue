@@ -1,12 +1,17 @@
 <template>
-    <div class='item browser-style sub'>
+    <div v-bind:class="[
+        'item', 
+        'browser-style', 
+        'sub',
+        page.selected? 'overlayed': ''
+    ]">
         <input type="checkbox" v-bind:id="`input-${group.id}-${page.id}`" v-model="page.checked"/>
         <label v-once v-bind:for="`input-${group.id}-${page.id}`">{{ page.title }}</label>
         <div class="action" @click="subAction">
             <i class="fas fa-external-link-alt"></i>
         </div>
         
-        <div class='select-overlay' v-if="true">
+        <div class='select-overlay' v-if="overlayed" @click="overlayAction">
             
         </div>
     </div>
@@ -15,7 +20,7 @@
 <script>
 export default {
   name: 'subitem',
-  props: ['group', 'page', 'onchange', 'onaction'],
+  props: ['group', 'page', 'onchange', 'onaction', 'onoverlayaction', 'overlayed'],
   watch: {
     'page.checked': function () {
         let checkedCount = this.group.pages.filter((p)=>p.checked).length;
@@ -41,6 +46,11 @@ export default {
     subAction() {
         if (this.onaction) {
             this.onaction(this.page, this.group);
+        }
+    },
+    overlayAction() {
+        if (this.onoverlayaction) {
+            this.onoverlayaction(this.page, this.group);
         }
     }
   }
@@ -99,6 +109,10 @@ export default {
     vertical-align: middle;
 }
 
+.item.overlayed {
+    background: #ccf !important;
+}
+
 .item .action:before {
     vertical-align: middle;
     display: inline-block;
@@ -109,10 +123,11 @@ export default {
 
 .item .select-overlay {
     width: 100%;
-    left: 0px;
+    left: 24px;
     right: 0px;
     top: 0px;
     bottom: 0px;
+    position: absolute;
 }
 
 </style>

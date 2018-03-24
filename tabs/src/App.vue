@@ -93,8 +93,10 @@
                         v-for="page in group.pages" 
                         v-bind:page="page" 
                         v-bind:group="group"
+                        v-bind:overlayed="panel[currentTab].multiSelecting"
                         v-bind:onchange="onPageChange.bind(this)"
                         v-bind:onaction="onPageAction.bind(this)"
+                        v-bind:onoverlayaction="onPageOverlayAction.bind(this)"
                     />
                 </div>
             </transition>
@@ -103,31 +105,29 @@
     
     <div class="edit-panel">
         <transition name="slide-h">
-            <div v-show="!multiSelecting" class="item" @click="selectAll">
+            <div v-show="!panel[currentTab].multiSelecting" class="item" @click="selectAll">
                 <i class="fas fa-hand-pointer fa-lg"></i>
                 Select all
             </div>
         </transition>
         <transition name="slide-h">
-            <div v-show="!multiSelecting" class="item" @click="cancel">
+            <div v-show="!panel[currentTab].multiSelecting" class="item" @click="cancel">
                 <i class="far fa-hand-pointer fa-lg"></i>
                 Unselect all
             </div>
         </transition>
-        <!--
         <transition name="slide-h">
-            <div v-show="!multiSelecting" @click="multiSelecting = !multiSelecting" class="item">
+            <div v-show="!panel[currentTab].multiSelecting" @click="panel[currentTab].multiSelecting = !panel[currentTab].multiSelecting" class="item">
                 <i class="fas fa-boxes fa-lg"></i>
                 Multi select
             </div>
         </transition>
         <transition name="slide-h">
-            <div v-show="multiSelecting"  @click="multiSelecting = !multiSelecting" class="item">
+            <div v-show="panel[currentTab].multiSelecting"  @click="panel[currentTab].multiSelecting = !panel[currentTab].multiSelecting" class="item">
                 <i class="fas fa-boxes fa-lg"></i>
                 Stop multi select
             </div>
         </transition>
-        -->
         <!--
         <div class="search-box browser-style">
             <input type="text" id="search" placeholder="search for tabs">
@@ -135,6 +135,9 @@
         </div>
         -->
         
+    </div>
+    
+    <div class="loading-overlay" v-if="loading">
     </div>
   </div>
 </template>
@@ -147,22 +150,24 @@ export default {
   name: 'app',
   data() {
     return {
+      loading: true,
       keywordCache: new LRUCache(-1, false, new LRUCache.LocalStorageCacheStorage()),
       pages: [],
       id: 0,
       tabs: [],
       groups: [],
-      multiSelecting: false,
       showSave: false,
       selectTabCount: 0,
       currentTab: 'current',
       panel: {
         'current': {
+          multiSelecting: false,
           groups: [],
           selectTabCount: 0,
           showSave: false
         },
         'saved': {
+          multiSelecting: false,
           groups: [],
           selectTabCount: 0,
           showSave: false
@@ -175,6 +180,7 @@ export default {
         let vm = this;
         let data = this.panel.current;
         
+        vm.loading = true;
         
         vm.pages = [];
         browser.tabs.query({}).then((tabs)=>{        
@@ -233,6 +239,7 @@ export default {
                         pages: pages.filter((page)=>page.keywords.indexOf(w) >= 0).map((o)=>{
                             o.checked = false;
                             o.id = vm.id++;
+                            o.selected = false;
                             // force a surface  clone
                             return Object.assign({}, o);
                         })
@@ -274,6 +281,9 @@ export default {
                 data.groups= sorted;
                 data.showSave = false;
                 data.selectTabCount = 0;
+                data.multiSelecting = false;
+                
+                vm.loading = false;
             })
         });
     },
@@ -299,6 +309,81 @@ export default {
         }
         
         this.updateCount()
+    },
+    onPageOverlayAction(currentPage, currentGroup) {
+        // check if anyone ever being selected ?
+        var groups = this.panel[this.currentTab].groups;
+        
+        var selectPage = null;
+        var selectGroupIndex = -1;
+        var selectPageIndex = -1;
+        
+        var currentGroupIndex = -1;
+        var currentPageIndex = -1;
+        
+        groups.forEach((group, groupIndex)=>{
+            group.pages.forEach((page, pageIndex)=>{
+                if (currentPage === page) {
+                    currentGroupIndex = groupIndex;
+                    currentPageIndex = pageIndex;
+                }
+                
+                if (page.selected) {
+                    selectPage = page;
+                    selectGroupIndex = groupIndex;
+                    selectPageIndex = pageIndex;
+                }
+            })
+        })
+        
+        if (selectPageIndex === -1) {
+            // select the first page
+            currentPage.selected = !currentPage.selected;
+        } else if (/*selectGroupIndex !== currentGroupIndex || selectPageIndex !== currentPageIndex*/ true) {
+            // select second page
+            selectPage.selected = false;
+            currentPage.selected = false;
+            
+            let old_checked = selectPage.checked;
+            
+            // iterate through the index to select pages
+            
+            if (selectGroupIndex > currentGroupIndex || (selectGroupIndex === currentGroupIndex && selectPageIndex > currentPageIndex)) {
+                // swap the order;
+                [selectGroupIndex, currentGroupIndex] = [currentGroupIndex, selectGroupIndex];
+                [selectPageIndex, currentPageIndex] = [currentPageIndex, selectPageIndex];
+            }
+            
+            for (let g = selectGroupIndex; g <= currentGroupIndex; g++) {
+                let start, end;
+                if (g === selectGroupIndex) {
+                    start = selectPageIndex;
+                } else {
+                    start = 0;
+                }
+                
+                if (g === currentGroupIndex) {
+                    end = currentPageIndex;
+                } else {
+                    end = groups[g].pages.length - 1;
+                }
+                
+                for (let p = start; p <= end; p++) {
+                    // groups[g].pages[p].checked = !groups[g].pages[p].checked
+                    if (old_checked) {
+                        groups[g].pages[p].checked = false
+                    } else {
+                        groups[g].pages[p].checked = true
+                    }
+                }
+            }
+        } else if (selectGroupIndex === currentGroupIndex && selectPageIndex === currentPageIndex) {
+            // select the already selected page
+            currentPage.selected = !currentPage.selected;
+        } else {
+            console.error('wtf? should this even possible to be happened?')
+        }
+        
     },
     updateCount() {
         this.panel[this.currentTab].selectTabCount = this.panel[this.currentTab].groups.reduce((prev, curr)=>prev + curr.checkedCount, 0)
@@ -410,6 +495,7 @@ export default {
                     title: tab.title,
                     url: tab.url,
                     id: this.id++,
+                    selected: false,
                     checked: false
                 }
             })
@@ -562,11 +648,45 @@ export default {
                 url: page.url
             })
         }
+    },
+    onShiftDown(ev) { this.onShiftToggle('down', ev) },
+    onShiftUp(ev) { this.onShiftToggle('up', ev) },
+    onShiftToggle(type, ev) {
+        if (ev.key !== "Shift") return
+        if (type === 'down') {
+            this.panel[this.currentTab].multiSelecting = true;
+        } else if (type === 'up') {
+            this.panel[this.currentTab].multiSelecting = false;
+        }
+    }
+  },
+  
+  computed: {
+    allMultiSelectMode() {
+        // it's only required to reference those properties
+        this.panel.saved.multiSelecting;
+        this.panel.current.multiSelecting;
+        // and then return a different value every time
+        return Date.now() // or performance.now()
+
+        // object literals also work but we don't need that overhead
+        // return {}
+        // return []
     }
   },
   watch: {
     currentTab() {
         location.hash = this.currentTab;
+    },
+    allMultiSelectMode() {
+        if (!this.panel[this.currentTab].multiSelecting) {
+            
+            this.panel.current.groups.forEach((g)=>{
+                g.pages.forEach((p)=> {
+                    p.selected = false;
+                })
+            })
+        }
     }
   },
   mounted() {
@@ -580,6 +700,15 @@ export default {
             this.currentTab = hash;
         }
     })
+    
+    this.onShiftDown = this.onShiftDown.bind(this)
+    this.onShiftUp = this.onShiftUp.bind(this)
+    document.addEventListener('keydown', this.onShiftDown)
+    document.addEventListener('keyup', this.onShiftUp)
+  },
+  beforeDestroy: function () {
+    document.removeEventListener('keydown', this.onShiftDown)
+    document.removeEventListener('keyup', this.onShiftUp)
   },
   components: {
     'subitem': SubItem
@@ -775,6 +904,19 @@ export default {
 .slide-h-enter, .slide-h-leave-to /* .slide-h-leave-active below version 2.1.8 */ {
   opacity: 0;
   max-width: 0;
+}
+
+.loading-overlay {
+    position: fixed;
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    background: rgba(127, 127, 127, 0.5);
+}
+
+.loading-overlay:before {
+    content: "Now Loading....";
 }
 
 </style>
