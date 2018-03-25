@@ -2,7 +2,7 @@
 
   "manifest_version": 2,
   "name": "Group Tab",
-  "version": "0.0.4b",
+  "version": "0.0.7alpha",
 
   "description": "Show your pages in group with keyword.",
   
@@ -13,12 +13,12 @@
   },
   
   "icons": {
-    "48": "icons/group_tab_48.png",
-    "96": "icons/group_tab_96.png"
+    "48": "icons/icon_48.png",
+    "96": "icons/icon_96.png"
   },
   
   "browser_action": {
-    "default_icon": "icons/action.png",
+    "default_icon": "icons/page-action.svg",
     "default_title": "Show tabs",
     "default_popup": "popup/menu.html"
   },

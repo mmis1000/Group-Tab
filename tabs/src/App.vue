@@ -122,6 +122,13 @@
                 Multi select
             </div>
         </transition>
+        
+        <transition name="slide-h">
+            <div v-show="panel[currentTab].multiSelecting" class="item" @click="toggleSelectionMode">
+                <img v-bind:src="`/icons/${panel[currentTab].selectMode}.svg`" style="vertical-align: middle; height: 18px;"/>
+                {{panel[currentTab].selectMode}} mode
+            </div>
+        </transition>
         <transition name="slide-h">
             <div v-show="panel[currentTab].multiSelecting"  @click="panel[currentTab].multiSelecting = !panel[currentTab].multiSelecting" class="item">
                 <i class="fas fa-boxes fa-lg"></i>
@@ -159,18 +166,21 @@ export default {
       showSave: false,
       selectTabCount: 0,
       currentTab: 'current',
+      selectModes: ['auto', 'or', 'not', 'xor'],
       panel: {
         'current': {
           multiSelecting: false,
           groups: [],
           selectTabCount: 0,
-          showSave: false
+          showSave: false,
+          selectMode: 'auto'
         },
         'saved': {
           multiSelecting: false,
           groups: [],
           selectTabCount: 0,
-          showSave: false
+          showSave: false,
+          selectMode: 'auto'
         }
       }
     }
@@ -370,10 +380,25 @@ export default {
                 
                 for (let p = start; p <= end; p++) {
                     // groups[g].pages[p].checked = !groups[g].pages[p].checked
-                    if (old_checked) {
-                        groups[g].pages[p].checked = false
-                    } else {
-                        groups[g].pages[p].checked = true
+                    switch (this.panel[this.currentTab].selectMode) {
+                        case 'auto':
+                            if (old_checked) {
+                                groups[g].pages[p].checked = false
+                            } else {
+                                groups[g].pages[p].checked = true
+                            }
+                            break;
+                        case 'or':
+                            groups[g].pages[p].checked = true;
+                            break;
+                        case 'not':
+                            groups[g].pages[p].checked = false;
+                            break;
+                        case 'xor':
+                            groups[g].pages[p].checked = !groups[g].pages[p].checked;
+                            break;
+                        default:
+                            throw new Error('how do you arrive here?')
                     }
                 }
             }
@@ -658,6 +683,12 @@ export default {
         } else if (type === 'up') {
             this.panel[this.currentTab].multiSelecting = false;
         }
+    },
+    toggleSelectionMode() {
+        var current = this.panel[this.currentTab].selectMode;
+        var index = this.selectModes.indexOf(current);
+        var next = this.selectModes[(index + 1) % this.selectModes.length];
+        this.panel[this.currentTab].selectMode = next;
     }
   },
   

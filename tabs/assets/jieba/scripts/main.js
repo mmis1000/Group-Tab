@@ -98,8 +98,8 @@ define(function(require) {
                     console.log(e);
                     break;
                 }
-                i++
                 
+                i++;
             }
             console.log(chunks);
             dictionary = [].concat.apply([], chunks)
