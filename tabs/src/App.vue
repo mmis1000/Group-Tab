@@ -118,7 +118,13 @@
         <section>
             <h2>Blacklisted keywords (reload to take effect)</h2>
             These words won't be think as keyword.
-            <textarea style="width: 90%; min-height: 400px;" class="browser-style" v-model="currentBlacklistText" placeholder="add multiple lines" @change="panel[currentTab].showSave = true"></textarea>
+            <textarea 
+                style="width: 90%; resize: vertical; min-height: 400px;" 
+                class="browser-style" 
+                v-model="currentBlacklistText" 
+                placeholder="add multiple lines" 
+                @change="panel[currentTab].showSave = true">
+            </textarea>
         </section>
         </div>
     
