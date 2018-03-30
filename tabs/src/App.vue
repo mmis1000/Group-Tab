@@ -9,6 +9,10 @@
             <i class="fas fa-save fa-2x"></i>
             Saved Tabs
         </div>
+        <div class="item" @click="currentTab = 'setting'">
+            <i class="fas fa-cog fa-2x"></i>
+            Setting
+        </div>
         
         <transition name="slide-v">
             <div class="bottom" v-if="panel[this.currentTab].showSave">
@@ -36,6 +40,12 @@
                         Delete
                     </div>
                 </transition>
+                <transition name="slide-v">
+                    <div class="item" @click="saveSetting" v-if="currentTab === 'setting'">
+                        <i class="fas fa-save fa-lg"></i>
+                        Save
+                    </div>
+                </transition>
                 <div class="item" @click="cancel">
                     <i class="fas fa-times fa-lg" style="color: red;"></i>
                     Cancel
@@ -45,7 +55,7 @@
     </div>
     
     
-    <div class="main">
+    <div class="main" v-if="currentTab === 'current' || currentTab === 'saved'">
         <h1 class='browser-style'>
             <transition name="slide-h">
                  <span v-if="currentTab === 'current'" style="display:inline-block; overflow: hidden; white-space: nowrap;">
@@ -103,7 +113,16 @@
         </div>
     </div>
     
-    <div class="edit-panel">
+    <div class="main" v-if="currentTab === 'setting'">
+        <h1>Setting</h1>
+        <section>
+            <h2>Blacklisted keywords (reload to take effect)</h2>
+            These words won't be think as keyword.
+            <textarea style="width: 90%; min-height: 400px;" class="browser-style" v-model="currentBlacklistText" placeholder="add multiple lines" @change="panel[currentTab].showSave = true"></textarea>
+        </section>
+        </div>
+    
+    <div class="edit-panel" v-if="currentTab !== 'setting'">
         <transition name="slide-h">
             <div v-show="!panel[currentTab].multiSelecting" class="item" @click="selectAll">
                 <i class="fas fa-hand-pointer fa-lg"></i>
@@ -153,6 +172,8 @@
 let SubItem = require('./SubItem.vue')
 console.log(SubItem);
 
+const defaultBlacklist = ["的","，","in","the","a","and","at","for","to","is","are","of","by","|","│",":","：","0","1","2","3","4","5","6","7","8","9","!","?",".","·","、","！","？"];
+
 export default {
   name: 'app',
   data() {
@@ -181,6 +202,18 @@ export default {
           selectTabCount: 0,
           showSave: false,
           selectMode: 'auto'
+        },
+        'setting': {
+          showSave: false,
+          'default': {
+            blacklist: defaultBlacklist,
+          },
+          saved: {
+            blacklist: defaultBlacklist,
+          },
+          current: {
+            blacklist: defaultBlacklist,
+          }
         }
       }
     }
@@ -191,6 +224,13 @@ export default {
         let data = this.panel.current;
         
         vm.loading = true;
+        
+        const filterKeywords = (keywords)=>{
+            let blacklist = this.panel.setting.current.blacklist;
+            return keywords.filter((k)=>{
+                return blacklist.indexOf(k) < 0;
+            })
+        }
         
         vm.pages = [];
         browser.tabs.query({}).then((tabs)=>{        
@@ -237,6 +277,10 @@ export default {
                 }, [])
                 
                 console.log(keywords);
+                
+                keywords = filterKeywords(keywords);
+                
+                console.log('filtered', keywords);
                 
                 let sorted = keywords.map((w)=>{
                     return {
@@ -413,6 +457,7 @@ export default {
     updateCount() {
         this.panel[this.currentTab].selectTabCount = this.panel[this.currentTab].groups.reduce((prev, curr)=>prev + curr.checkedCount, 0)
     },
+
     closeTabs() {
         if (!confirm('really want to close and save these tabs?')) {
             return
@@ -460,6 +505,7 @@ export default {
         })
         
     },
+
     saveTabs() {
         this._saveTabs();
     },
@@ -545,6 +591,7 @@ export default {
         this._saveTabs(true);
         this._closeTabs();  
     },
+
     deleteSaved() {
         if (!confirm('really want to delete these items?')) {
             return
@@ -591,11 +638,54 @@ export default {
         
         this.saveTabToStorage()
     },
-    cancel() {
-        this.panel[this.currentTab].groups.forEach((g)=>{
-            this.setGroupChecked(g, false);
+
+    saveSetting() {
+        this.panel.setting.saved = 
+            JSON.parse(JSON.stringify(this.panel.setting.current));
+            
+        this.saveSettingToStorage();
+        
+        this.panel.setting.showSave = false;
+    },
+    
+    saveSettingToStorage() {
+        var toSave = this.panel.setting.saved
+        browser.storage.local.set({
+            setting: toSave
+        })
+        
+    },
+    loadSettingFromStorage() {
+        return browser.storage.local.get("setting")
+        .then((data)=>{
+            var setting = data.setting;
+            if (!setting) return;
+            this.panel.setting.saved = Object.assign(
+                {},
+                JSON.parse(JSON.stringify(this.panel.setting.default)),
+                setting
+            )
+            
+            this.panel.setting.current = 
+                JSON.parse(JSON.stringify(this.panel.setting.saved));
+            
+            this.panel.setting.showSave = false;
         })
     },
+    
+    cancel() {
+        if (this.currentTab === 'current' || this.currentTab === 'saved') {
+            this.panel[this.currentTab].groups.forEach((g)=>{
+                this.setGroupChecked(g, false);
+            })
+        } else if (this.currentTab === 'setting'){
+            this.panel.setting.current = 
+                JSON.parse(JSON.stringify(this.panel.setting.saved));
+        
+            this.panel.setting.showSave = false;
+        }
+    },
+
     saveTabToStorage() {
         var mapped = this.panel.saved.groups.map((group)=>{
             return {
@@ -615,8 +705,7 @@ export default {
         })
     },
     loadTabFromStorage() {
-        
-        browser.storage.local.get("savedPages")
+        return browser.storage.local.get("savedPages")
         .then((data)=>{
             var savedPages = data.savedPages;
             if (!savedPages) return;
@@ -646,11 +735,29 @@ export default {
             this.panel.saved.groups = mapped;
         });
     },
+
     selectAll() {
         this.panel[this.currentTab].groups.forEach((g)=>{
             this.setGroupChecked(g, true);
         })
     },
+    onShiftDown(ev) { this.onShiftToggle('down', ev) },
+    onShiftUp(ev) { this.onShiftToggle('up', ev) },
+    onShiftToggle(type, ev) {
+        if (ev.key !== "Shift") return
+        if (type === 'down') {
+            this.panel[this.currentTab].multiSelecting = true;
+        } else if (type === 'up') {
+            this.panel[this.currentTab].multiSelecting = false;
+        }
+    },
+    toggleSelectionMode() {
+        var current = this.panel[this.currentTab].selectMode;
+        var index = this.selectModes.indexOf(current);
+        var next = this.selectModes[(index + 1) % this.selectModes.length];
+        this.panel[this.currentTab].selectMode = next;
+    },
+    
     onPageAction(page, group) {
         console.log(JSON.stringify(page))
         if (this.currentTab === "current") {
@@ -673,23 +780,8 @@ export default {
                 url: page.url
             })
         }
-    },
-    onShiftDown(ev) { this.onShiftToggle('down', ev) },
-    onShiftUp(ev) { this.onShiftToggle('up', ev) },
-    onShiftToggle(type, ev) {
-        if (ev.key !== "Shift") return
-        if (type === 'down') {
-            this.panel[this.currentTab].multiSelecting = true;
-        } else if (type === 'up') {
-            this.panel[this.currentTab].multiSelecting = false;
-        }
-    },
-    toggleSelectionMode() {
-        var current = this.panel[this.currentTab].selectMode;
-        var index = this.selectModes.indexOf(current);
-        var next = this.selectModes[(index + 1) % this.selectModes.length];
-        this.panel[this.currentTab].selectMode = next;
     }
+
   },
   
   computed: {
@@ -703,6 +795,14 @@ export default {
         // object literals also work but we don't need that overhead
         // return {}
         // return []
+    },
+    currentBlacklistText: {
+        get() {
+            return this.panel.setting.current.blacklist.join('\n');
+        },
+        set(newVal) {
+            this.panel.setting.current.blacklist = newVal.split(/\n/g);
+        }
     }
   },
   watch: {
@@ -718,17 +818,27 @@ export default {
                 })
             })
         }
-    }
+    }/*,        
+    "panel.setting.current": {
+        handler: function() {
+            this.panel.setting.showSave = true;
+        },
+        deep: true
+    }*/
   },
   mounted() {
+    var vm = this;
+  
     // `this` points to the vm instance
-    setTimeout(()=>{
-        this.update();
-        this.loadTabFromStorage()
+    setTimeout(async function() {
+        await vm.loadTabFromStorage();
+        await vm.loadSettingFromStorage();
+        
+        vm.update();
         
         let hash = location.hash.slice(1);
-        if (hash === 'saved' || hash === 'current') {
-            this.currentTab = hash;
+        if (hash === 'saved' || hash === 'current' || hash === 'setting') {
+            vm.currentTab = hash;
         }
     })
     
