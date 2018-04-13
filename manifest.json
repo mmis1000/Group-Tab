@@ -2,7 +2,7 @@
 
   "manifest_version": 2,
   "name": "Group Tab",
-  "version": "0.1.0alpha",
+  "version": "0.1.1alpha",
 
   "description": "Show your pages in group with keyword.",
   
@@ -27,6 +27,7 @@
   
   "permissions": [
     "tabs",
+    "bookmarks",
     "storage",
     "unlimitedStorage",
     "notifications"

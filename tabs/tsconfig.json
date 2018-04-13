@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "outDir": "./built",
+        "allowJs": true,
+        "checkJs": true,
+        "target": "es2017",
+        "noImplicitAny": true,
+    },
+    //哪些檔案要編譯
+    "include":[
+        "./src/store/**/*",
+        "./src/utils/**/*"
+    ],
+    "types": ["firefox-webext-browser"] 
+}

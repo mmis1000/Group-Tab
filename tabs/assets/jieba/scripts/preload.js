@@ -19,7 +19,11 @@ let cut = (str)=>{
 
 */
 
-
+/**
+ * 
+ * @param {string} str 
+ * @return {Promise<string[]>}
+ */
 let cut = (str)=>{
   return browser.runtime.sendMessage({
     str
