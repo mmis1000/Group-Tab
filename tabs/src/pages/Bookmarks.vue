@@ -8,6 +8,7 @@
       v-bind:parents="[]" 
       v-bind:overlayed="overlayed" 
       v-bind:isRoot="true" 
+      v-bind:onaction="open"
       v-bind:onoverlayaction="onOverlayAction"
     />
 
@@ -348,6 +349,15 @@
         const treeNodes = leftNode.map((t)=>this.$store.state.bookmarks.map.get(t.path));
 
         this.$store.dispatch('bookmarks/remove', treeNodes)
+      },
+      open(item, parents) {
+        if (!item.url || !item.url.match(/^https?:\/\//)) {
+          return;
+        }
+
+        let original = this.$store.state.bookmarks.map.get(item.path);
+
+        this.$store.dispatch('bookmarks/open', original);
       }
     },
     async mounted() {

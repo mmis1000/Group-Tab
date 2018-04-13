@@ -1,7 +1,13 @@
 <template>
   <div>
     <h1> Total {{tree.total}} {{ tree.checkedCount > 0 ? ' (' + tree.checkedCount + ' selected)': '' }}</h1>
-    <item v-bind:path="tree.path" v-bind:item="tree" v-bind:parents="[]" v-bind:overlayed="multiSelecting" v-bind:onoverlayaction="onItemSelect"
+    <item 
+      v-bind:path="tree.path" 
+      v-bind:item="tree" 
+      v-bind:parents="[]" 
+      v-bind:overlayed="multiSelecting" 
+      v-bind:onoverlayaction="onItemSelect"
+      v-bind:onaction="jumpToTab"
       v-bind:isRoot="true" />
 
     <transition name="slide-v">
@@ -118,7 +124,7 @@
         var next = this.selectModes[(index + 1) % this.selectModes.length];
         this.selectMode = next;
       },
-      onItemSelect(item, parents ) {
+      onItemSelect(item, parents) {
         console.log(item);
 
         /** 
@@ -403,6 +409,15 @@
           path: '/bookmarks'
         });
       },
+      jumpToTab(item, parents) {
+        if (item.isFolder) {
+          return;
+        }
+
+        let original = this.$store.state.tabs.map.get(item.path);
+
+        this.$store.dispatch('tabs/jumpTo', original);
+      }
     },
     async mounted() {
       this.onShiftDown = this.onShiftDown.bind(this);

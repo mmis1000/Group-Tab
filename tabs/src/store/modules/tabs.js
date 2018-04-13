@@ -312,7 +312,7 @@ export default {
      * @param {*} param0 
      * @param {TabItem} tab 
      */
-    async jumpToTab({ }, tab) {
+    async jumpTo({ }, tab) {
       await browser.tabs.update(
         tab.data.tab.id,
         {

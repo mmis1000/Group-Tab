@@ -271,5 +271,11 @@ export default {
         await dispatch('load');
       }
     },
+    async open({}, /** @type {BookmarkItem} */ bookmark) {
+      console.log(bookmark.url);
+      await browser.tabs.create({
+        url: bookmark.url
+      })
+    },
   },
 };
