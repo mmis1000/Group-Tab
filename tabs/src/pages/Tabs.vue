@@ -64,7 +64,7 @@
         </div>
       </transition>
     </div>
-
+    <div style="position: fixed; left:0; right:0; top:0; bottom:0; background: rgba(127, 127, 127, 0.7)" v-show="loading">Loading...</div>
   </div>
 </template>
 
@@ -89,6 +89,11 @@
         firstSelect: null,
         secondSelect: null,
       };
+    },
+    computed: {
+      loading() {
+        return this.$store.state.tabs.loading;
+      },
     },
     watch: {
       list() {

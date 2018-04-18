@@ -50,6 +50,8 @@ class State {
     this.list = [defaultItem];
     /** @type {Map<string, BookmarkItem>} */
     this.map = map;
+    /** @type {boolean} */
+    this.loading = false;
   }
 }
 
@@ -145,6 +147,7 @@ export default {
   actions: {
     async load(/** @type {{state:State, commit: Function}} */{ state, commit }) {
       console.log('start loading');
+      state.loading = true;
 
       /** @type {BookmarkItem[]} */
       const list = [];
@@ -204,6 +207,8 @@ export default {
 
       console.log('commit', list);
       commit('update', [list, root.id]);
+
+      state.loading = false;
     },
     async remove(/** @type {
       {
@@ -235,6 +240,21 @@ export default {
     }) {
       // filter tabs
       tabs = tabs.filter((tab)=>!tab.isFolder);
+
+      // do a dedup
+      /**
+       * @type {Map<string, boolean>}
+       */
+      var m = new Map();
+      tabs = tabs.filter((tab)=>{
+        if (!m.has(tab.url)) {
+          m.set(tab.url, true);
+          return true;
+        } else {
+          return false;
+        }
+      })
+
       let targetId = target.data.id;
 
       if (isGrouped) {

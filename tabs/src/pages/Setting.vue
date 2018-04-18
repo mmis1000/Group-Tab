@@ -49,7 +49,7 @@
           console.log(text);
           this.$store.dispatch('setting/setBlacklist', text.split('\n'));
         },
-      }
+      },
     },
     methods: {
       updateBlacklist(/*e*/) {

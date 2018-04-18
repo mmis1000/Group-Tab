@@ -45,6 +45,8 @@ class State {
     this.list = [defaultItem];
     /** @type {Map<string, TabItem>} */
     this.map = map;
+    /** @type {boolean} */
+    this.loading = false;
   }
 }
 
@@ -138,7 +140,7 @@ export default {
     },
   },
   actions: {
-    async load(/** @type {{commit: function, rootState: any}} */{ commit, rootState }) {
+    async load(/** @type {{commit: function, rootState: any, state: State}} */{ commit, rootState, state }) {
       /** 
        * @param {string[]} keywords
        * @return {string[]} 
@@ -150,6 +152,8 @@ export default {
         });
       };
       
+      state.loading = true;
+
       let tabs = await browser.tabs.query({});
        
       /**
@@ -306,6 +310,8 @@ export default {
       }
       console.log(mapped);
       commit('update', [ mapped ]);
+
+      state.loading = false;
     },
     /**
      * 
