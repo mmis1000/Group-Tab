@@ -278,7 +278,17 @@ export default {
       
       // add sub nodes
       for (let group of sorted) {
-        let parentPath = 'root/' + encodeURIComponent(group.keyword);
+        /**
+         * @type {string};
+         */
+        let parentPath;
+        
+        try {
+          parentPath = 'root/' + encodeURIComponent(group.keyword);
+        } catch (err) {
+          parentPath = 'root/' + group.keyword.replace('/', '%2F');
+        }
+
         rootNode.children.push(parentPath);
         
         let children = group.pages.map((page)=>new TabItem({
