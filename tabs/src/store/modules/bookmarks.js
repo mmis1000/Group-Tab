@@ -218,14 +218,14 @@ export default {
       dispatch
     }, /** @type {BookmarkItem[]} */ bookmarks) {
 
-      console.log('pending remove bookmarks ' + bookmarks)
+      console.log('pending remove bookmarks ' + bookmarks);
       await Promise.all(bookmarks.map((bookmark)=>{
         if (bookmark.isFolder) {
           return browser.bookmarks.removeTree(bookmark.data.id);
         } else {
           return browser.bookmarks.remove(bookmark.data.id);
         }
-      }))
+      }));
 
       await dispatch('load');
     },
@@ -253,7 +253,7 @@ export default {
         } else {
           return false;
         }
-      })
+      });
 
       let targetId = target.data.id;
 
@@ -295,7 +295,7 @@ export default {
       console.log(bookmark.url);
       await browser.tabs.create({
         url: bookmark.url
-      })
+      });
     },
   },
 };

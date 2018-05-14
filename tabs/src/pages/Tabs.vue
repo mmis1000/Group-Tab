@@ -209,7 +209,7 @@
             isBiggerThan(max, currentIndex, true) &&
             (!tree.isFolder || tree.children.length === 0)
           ) {
-            console.log('found', min, currentIndex, max, tree)
+            console.log('found', min, currentIndex, max, tree);
             results.push({item: tree, parents});
           }
 
@@ -246,7 +246,7 @@
 
             found.forEach(({item: leaf, parents})=>{
               if (this.selectMode === 'auto' || this.selectMode === 'not' || this.selectMode === 'or') {
-                let newStatus = newStatusMap[this.selectMode]
+                let newStatus = newStatusMap[this.selectMode];
 
                 leaf.checked = newStatus;
               } else if (this.selectMode === 'xor') {
