@@ -29,7 +29,7 @@ export default {
     }
   },  
   actions: {
-    async load({ commit }) {
+    async load(/** @type {{commit: function}} */{ commit }) {
       const data = await browser.storage.local.get("setting");
       const setting = data.setting;
       if (!setting) return;
@@ -55,7 +55,7 @@ export default {
     /**
      * @param {string[]} blacklist
      */
-    async setBlacklist({ commit }, blacklist) {
+    async setBlacklist(/** @type {{commit: function}} */{ commit }, blacklist) {
       commit('setBlacklistStash', blacklist);
     },
   }

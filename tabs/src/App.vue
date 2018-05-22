@@ -109,7 +109,9 @@
           'normal';
       },
     },
-    mounted() {
+    async mounted() {
+      await this.$store.dispatch('setting/load');
+
       this.$navigation.on('back', () => {
         console.log('on back');
         // trim the stack that no longer used
