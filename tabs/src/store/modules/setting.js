@@ -127,10 +127,10 @@ export default {
 
           state.queue.forEach(fn=>fn());
           commit('clearQueue');
-        }
+        };
 
         loadAsync();
-      })
+      });
     },
     async save(/** @type {{state: State, commit: any}} */{ state, commit }) {
       commit('setBlacklist', state.blacklistStash);

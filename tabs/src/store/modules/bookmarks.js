@@ -1,4 +1,6 @@
-import {TabItem} from './tabs.js';
+import {
+  TabItem
+} from './tabs.js';
 
 export class BookmarkItem {
   constructor(opts = {}) {
@@ -43,7 +45,7 @@ map.set(defaultItem.path, defaultItem);
 
 
 class State {
-  constructor(){
+  constructor() {
     /** @type {string} */
     this.rootNodeId = 'root';
     /** @type {BookmarkItem[]} */
@@ -57,17 +59,17 @@ class State {
 
 export default {
   namespaced: true,
-  state:  new State(),
+  state: new State(),
   mutations: {
     /**
      * update the list while keep old items alive
      * @param {State} state
      */
-    update(state, /** @type {[BookmarkItem[], string]} */ [ newList, newRoot = 'root' ]) {
+    update(state, /** @type {[BookmarkItem[], string]} */ [newList, newRoot = 'root']) {
       state.rootNodeId = newRoot;
 
       console.log('patch list', newList);
-      
+
       /** @type {BookmarkItem[]} */
       const list = state.list;
       /** @type {Map<string, BookmarkItem>} */
@@ -145,7 +147,10 @@ export default {
     },
   },
   actions: {
-    async load(/** @type {{state:State, commit: Function}} */{ state, commit }) {
+    async load( /** @type {{state:State, commit: Function}} */ {
+      state,
+      commit
+    }) {
       console.log('start loading');
       state.loading = true;
 
@@ -153,7 +158,7 @@ export default {
       const list = [];
 
       const root = (await browser.bookmarks.getTree())[0];
-      
+
       /**
        * 
        * @param {browser.bookmarks.BookmarkTreeNode} node 
@@ -210,16 +215,18 @@ export default {
 
       state.loading = false;
     },
-    async remove(/** @type {
+    async remove(
+      /** @type {
+            {
+              dispatch: function
+            }
+          } */
       {
-        dispatch: function
-      }
-    } */{
-      dispatch
-    }, /** @type {BookmarkItem[]} */ bookmarks) {
+        dispatch
+      }, /** @type {BookmarkItem[]} */ bookmarks) {
 
       console.log('pending remove bookmarks ' + bookmarks);
-      await Promise.all(bookmarks.map((bookmark)=>{
+      await Promise.all(bookmarks.map((bookmark) => {
         if (bookmark.isFolder) {
           return browser.bookmarks.removeTree(bookmark.data.id);
         } else {
@@ -230,23 +237,27 @@ export default {
       await dispatch('load');
     },
 
-    async add(/** @type {{dispatch: function}} */{ dispatch }, /**
-     * @type {{tabs: TabItem[], target: BookmarkItem, isGrouped: boolean, name: string?}}
-     */{
-      tabs, 
-      target,
-      isGrouped = false,
-      name = null, 
-    }) {
+    async add( /** @type {{dispatch: function}} */ {
+        dispatch
+      },
+      /**
+       * @type {{tabs: TabItem[], target: BookmarkItem, isGrouped: boolean, name: string?}}
+       */
+      {
+        tabs,
+        target,
+        isGrouped = false,
+        name = null,
+      }) {
       // filter tabs
-      tabs = tabs.filter((tab)=>!tab.isFolder);
+      tabs = tabs.filter((tab) => !tab.isFolder);
 
       // do a dedup
       /**
        * @type {Map<string, boolean>}
        */
       var m = new Map();
-      tabs = tabs.filter((tab)=>{
+      tabs = tabs.filter((tab) => {
         if (!m.has(tab.url)) {
           m.set(tab.url, true);
           return true;
@@ -260,7 +271,8 @@ export default {
       if (isGrouped) {
         // create the root folder
         let folder = await browser.bookmarks.create(
-          /** @type {browser.bookmarks.CreateDetails} */({
+          /** @type {browser.bookmarks.CreateDetails} */
+          ({
             parentId: targetId,
             title: name,
             type: "folder",
@@ -268,8 +280,9 @@ export default {
         );
 
         let folderId = folder.id;
-        await Promise.all(tabs.map((tab)=>browser.bookmarks.create(
-          /** @type {browser.bookmarks.CreateDetails} */({
+        await Promise.all(tabs.map((tab) => browser.bookmarks.create(
+          /** @type {browser.bookmarks.CreateDetails} */
+          ({
             parentId: folderId,
             title: tab.text,
             type: "bookmark",
@@ -279,8 +292,9 @@ export default {
 
         await dispatch('load');
       } else {
-        await Promise.all(tabs.map((tab)=>browser.bookmarks.create(
-          /** @type {browser.bookmarks.CreateDetails} */({
+        await Promise.all(tabs.map((tab) => browser.bookmarks.create(
+          /** @type {browser.bookmarks.CreateDetails} */
+          ({
             parentId: targetId,
             title: tab.text,
             type: "bookmark",
