@@ -56,7 +56,7 @@
         this.showSave = true;
       },
       async cancel() {
-        await this.$store.dispatch('setting/load');
+        await this.$store.dispatch('setting/reload');
         this.showSave = false;
       },
       async save() {

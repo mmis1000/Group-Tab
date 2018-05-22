@@ -113,25 +113,25 @@ export default {
         /**
          * @param {Frame} frame
          */
-        pushStack({ commit }, frame) {
+        pushStack(/** @type {{commit: function}}*/{ commit }, frame) {
             commit('pushStack', frame);
         },
-        popStack({ commit }) {
+        popStack(/** @type {{commit: function}}*/{ commit }) {
             commit('popStack');
         },
         /**
          * @param {Direction} direction
          */
-        setDirection({ commit }, direction) {
+        setDirection(/** @type {{commit: function}}*/{ commit }, direction) {
             commit('setDirection', direction);
         },
-        stashStack({ commit }) {
+        stashStack(/** @type {{commit: function}}*/{ commit }) {
             commit('stashStack');
         },
-        unstashStack({ commit }) {
+        unstashStack(/** @type {{commit: function}}*/{ commit }) {
             commit('unstashStack');
         },
-        drop({ commit }) {
+        drop(/** @type {{commit: function}}*/{ commit }) {
             commit('drop');
         }
     }

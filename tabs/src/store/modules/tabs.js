@@ -140,7 +140,9 @@ export default {
     },
   },
   actions: {
-    async load(/** @type {{commit: function, rootState: any, state: State}} */{ commit, rootState, state }) {
+    async load(/** @type {{dispatch: function, commit: function, rootState: any, state: State}} */{ dispatch, commit, rootState, state }) {
+      await dispatch('setting/load');
+
       /** 
        * @param {string[]} keywords
        * @return {string[]} 
